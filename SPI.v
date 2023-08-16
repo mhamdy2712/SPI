@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module SPI#(parameter mode=2'b01,bits_size=8)(
+module SPI#(parameter mode=2'b00,bits_size=8)(
     input clk,reset_n,
     input [bits_size-1:0] master_data_in,
     input [bits_size-1:0] slave_data_in,
