@@ -76,7 +76,6 @@ module SPI_Master #(parameter mode=2'b00,bits_size=8)(
                     bit_number <= bits_size-1;
                     rx_bit_number <= bits_size-1;
                     ignore_first_edge <=0;
-                    ss <=1;
                     if(tx_start) begin
                         ss <= 0;
                         tx_done1 <=0;
