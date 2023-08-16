@@ -48,7 +48,7 @@ module SPI_Slave #(parameter mode=2'b00,bits_size=8)(
     assign Trailling_edge = CPOL ? pe :ne;
     assign Leading_edge = CPOL ? ne : pe;
     //Transmitter
-    always @(posedge clk,negedge reset_n,negedge ss,posedge ss) begin
+    always @(posedge clk,negedge reset_n) begin
         if(~reset_n) begin
             MISO <=0;
             data_out1 <= 0;
