@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module SPI_4Slaves #(parameter mode=2'b00,bits_size=8)(
+module SPI_4Slaves #(parameter mode=2'b11,bits_size=10)(
     input clk,reset_n,
     input [bits_size-1:0] master_data_in,
     input [bits_size-1:0] slave_data_in1,
@@ -55,7 +55,7 @@ module SPI_4Slaves #(parameter mode=2'b00,bits_size=8)(
     .sel(ss),
     .out(MISO)
     );
-    SPI_Master #(.mode(mode) , .bits_size(bits_size) , .slave_num(4) ) SpiM1(
+    SPI_Master #(.mode(mode) , .bits_size(bits_size) , .slaves_num(4) ) SpiM1(
     .clk(clk),
     .reset_n(reset_n),
     .data_in(master_data_in),
