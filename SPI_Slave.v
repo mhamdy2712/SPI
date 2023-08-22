@@ -62,6 +62,7 @@ module SPI_Slave #(parameter mode=2'b00,bits_size=8)(
         end
         else begin
             case(state)
+                //idle
                 0: begin
                     last_bit <=0;
                     bit_number <= bits_size-1;
@@ -77,27 +78,39 @@ module SPI_Slave #(parameter mode=2'b00,bits_size=8)(
                     end
                     else MISO <= data_in[bits_size-1];
                 end
+                //start send
                 1: begin
+                
+                //Transmitter
+                
                     if((~CPHA && Trailling_edge) || (CPHA && Leading_edge) ) begin
                         if(CPHA && ~ignore_first_edge)
                             ignore_first_edge <=1;
                         else begin
-                            MISO <= data_in[bit_number];
-                            if(bit_number == 0) begin
+                             MISO <= data_in[bit_number];
+                            if(bit_number != 0) 
+                                bit_number <= bit_number-1;
+                        end
+                    end
+                    
+                //Receiver
+                    
+                    if( (~CPHA && Leading_edge) || (CPHA && Trailling_edge) ) begin
+                        data_out1[rx_bit_number] <= MOSI;
+                        rx_bit_number <= rx_bit_number-1;
+                    end
+                    
+                //FINISH AND GO BACK TO IDLE
+                    if(bit_number == 0) begin
+                        if ((CPHA && Trailling_edge) || (~CPHA && Trailling_edge))  begin
                                 if(last_bit) begin
                                     state <=0;
                                     tx_done1 <=1;
                                     rx_done1 <= 1;
                                 end
                                 last_bit <=1;
+                            end
                         end
-                        else bit_number <= bit_number-1;
-                        end
-                    end
-                    if( (~CPHA && Leading_edge) || (CPHA && Trailling_edge) ) begin
-                        data_out1[rx_bit_number] <= MOSI;
-                        rx_bit_number <= rx_bit_number-1;
-                    end
                 end
             endcase
         end
