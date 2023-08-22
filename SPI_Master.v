@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module SPI_Master #(parameter mode=2'b00,bits_size=8)(
+module SPI_Master #(parameter mode=2'b00,bits_size=10,slaves_num=4)(
     input clk,reset_n,
     input [bits_size-1:0] data_in,
     output [bits_size-1:0] data_out,
@@ -28,7 +28,7 @@ module SPI_Master #(parameter mode=2'b00,bits_size=8)(
     input tx_start,
     input MISO,
     output reg MOSI,
-    output reg ss,
+    output reg [0:slaves_num-1] ss,
     output SCLK,
     output rx_done
     );
@@ -46,6 +46,11 @@ module SPI_Master #(parameter mode=2'b00,bits_size=8)(
     reg [bits_size-1:0] data_out1;
     reg last_bit;
     reg state;
+    reg [$clog2(slaves_num)-1:0] ss_sel;
+    
+    
+    
+    //Edge Detector
     always @(posedge clk) begin
         sig <= SCLK_in;
     end
@@ -53,12 +58,16 @@ module SPI_Master #(parameter mode=2'b00,bits_size=8)(
     assign ne = sig & ~SCLK_in;
     assign Trailling_edge = CPOL ? pe :ne;
     assign Leading_edge = CPOL ? ne : pe;
-    //Transmitter
+    
+    
+    
+    
     always @(posedge clk,negedge reset_n) begin
         if(~reset_n) begin
             MOSI <=0;
             data_out1 <= 0;
             last_bit <=0;
+            ss_sel <= 0;
             start <= 0;
             rstcnt <= 1;
             tx_done1 <=0;
@@ -67,17 +76,19 @@ module SPI_Master #(parameter mode=2'b00,bits_size=8)(
             bit_number <= bits_size-1;
             rx_bit_number <= bits_size-1;
             state <= 0;
-            ss <=1;
+            ss <= 4'b1111;
         end
         else begin
             case(state)
+                //idle
                 0: begin
                     last_bit <=0;
                     bit_number <= bits_size-1;
                     rx_bit_number <= bits_size-1;
                     ignore_first_edge <=0;
                     if(tx_start) begin
-                        ss <= 0;
+                        ss[ss_sel] <= 0;
+                        ss_sel <= ss_sel +1;
                         tx_done1 <=0;
                         rx_done1 <= 0;
                         data_out1 <= 0;
@@ -88,31 +99,44 @@ module SPI_Master #(parameter mode=2'b00,bits_size=8)(
                     end
                     else MOSI <= data_in[bits_size-1];
                 end
+                //start send
                 1: begin
                     start <=1;
                     rstcnt <=1 ;
+                    
+                //Transmitter
+                    
                     if((~CPHA && Trailling_edge) || (CPHA && Leading_edge) ) begin
                         if(CPHA && ~ignore_first_edge)
                             ignore_first_edge <=1;
                         else begin
                             MOSI <= data_in[bit_number];
-                            if(bit_number == 0) begin
+                            if(bit_number != 0) 
+                                bit_number <= bit_number-1;
+                        end
+                    end
+                    
+                //Receiver
+                    
+                    if( (~CPHA && Leading_edge) || (CPHA && Trailling_edge) ) begin
+                        data_out1[rx_bit_number] <= MISO;
+                        rx_bit_number <= rx_bit_number-1;
+                    end
+                    
+                //Finish AND GO BACK TO IDLE
+                    
+                    if(bit_number == 0) begin
+                        if ((CPHA && Trailling_edge) || (~CPHA && Trailling_edge))  begin
                                 if(last_bit) begin
                                     state <=0;
-                                    ss <= 1;
+                                    ss <= 4'b1111;
                                     tx_done1 <=1;
                                     start <=0 ;
                                     rx_done1 <= 1;
                                 end
                                 last_bit <=1;
+                            end
                         end
-                        else bit_number <= bit_number-1;
-                        end
-                    end
-                    if( (~CPHA && Leading_edge) || (CPHA && Trailling_edge) ) begin
-                        data_out1[rx_bit_number] <= MISO;
-                        rx_bit_number <= rx_bit_number-1;
-                    end
                 end
             endcase
         end
