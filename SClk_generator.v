@@ -26,7 +26,7 @@ module SClk_generator #(parameter mode=2'b11)(
     output SCLK,
     input reset_n
     );
-    reg [1:0] count;
+    reg [3:0] count;
     reg clk_in;
     wire CPOL = mode==2'b11 || mode==2'b10;
     always @(posedge clk,negedge reset_n) begin
@@ -36,10 +36,10 @@ module SClk_generator #(parameter mode=2'b11)(
         end
         else begin
             count <= count +1;
-            if(count == 1) begin
+            if(count == 7) begin
                 clk_in <= ~clk_in;
             end
-            if(count == 3) begin
+            if(count ==15) begin
                 clk_in <= ~clk_in;
             end
         end    
